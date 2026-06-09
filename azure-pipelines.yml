@@ -2,7 +2,6 @@ trigger:
 - main
 - master
 
-# Uses Microsoft's cloud servers to handle execution automatically
 pool:
   vmImage: 'windows-latest'
 
@@ -10,7 +9,7 @@ steps:
 - checkout: self 
   displayName: 'Fetch Application Code & Tests'
 
-# 1. Provision a clean Python 3.x runtime environment on the cloud machine
+# 1. Provision a clean Python 3.x runtime environment
 - task: UsePythonVersion@0
   displayName: 'Set up Python 3.x Environment'
   inputs:
@@ -27,44 +26,41 @@ steps:
     configMode: 'manual'
     cliProjectKey: 'sandeepsandiss73_pytest-coverage-example'
     cliProjectName: 'Pytest_Coverage_Example'
-    cliSources: '.' 
+    cliSources: 'bank_app'
     extraProperties: |
       sonar.language=py
       sonar.python.version=3
-      sonar.sources=.
-      sonar.tests=.
-      sonar.test.inclusions=**/*test*.py
+      sonar.sources=bank_app
+      sonar.tests=tests
       sonar.python.coverage.reportPaths=$(System.DefaultWorkingDirectory)/coverage.xml
 
 # 3. Install required test execution dependencies
 - powershell: |
-    Write-Host "Upgrading system pip framework..."
     python -m pip install --upgrade pip
-    Write-Host "Installing testing packages (pytest & pytest-cov)..."
     pip install pytest pytest-cov
   displayName: 'Install Test Dependencies'
 
 # 4. Run the unit test suite and break the pipeline if coverage is under 98%
 - powershell: |
-    Write-Host "Executing pytest analysis against the root directory..."
-    # ENFORCED: If total coverage is less than 98%, this command exits with an error and stops the pipeline
-    pytest --cov=. --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-fail-under=98
+    pytest --cov=bank_app tests/ --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-fail-under=98
   displayName: 'Execute Pytest & Enforce 98% Coverage'
 
-# 5. Scan the application lines for code smells and security gaps
+# 5. Scan the lines (CHANGED: runs even if step 4 fails)
 - task: SonarCloudAnalyze@4
   displayName: 'Execute SonarCloud Code Scan'
+  condition: always() 
 
-# 6. Publish Quality Gate metrics back to your cloud dashboard
+# 6. Publish Quality Gate metrics back to dashboard (CHANGED: runs even if step 4 fails)
 - task: SonarCloudPublish@4
   displayName: 'Publish Quality Gate Results'
+  condition: always()
   inputs:
     pollingTimeoutSec: '300'
 
-# 7. Upload the interactive HTML code coverage web report to your Artifacts vault
+# 7. Upload the interactive HTML report to your Artifacts vault
 - task: PublishPipelineArtifact@1
   displayName: 'Publish Interactive HTML Coverage Dashboard'
-  condition: succeededOrFailed() 
+  condition: always() 
   inputs:
     targetPath: '$(System.DefaultWorkingDirectory)/htmlcov'
     artifactName: 'Python-Unit-Test-Coverage'
