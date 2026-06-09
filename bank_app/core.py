@@ -1,8 +1,7 @@
 from datetime import datetime
 
 
-def calculate_diff_in_years(date_x: str) \
-        -> int:
+def calculate_diff_in_years(date_x: str) -> int:
     """
     Function to calculate the difference
     between defined date string and today's date.
@@ -38,8 +37,7 @@ class BankApp:
         based on Name, DOB and Move In Date
         :return: Bool
         """
-        if all(v is not None for v in
-               [self.name, self.dob, self.move_in_date]):
+        if all(v is not None for v in [self.name, self.dob, self.move_in_date]):
             return True
         return False
 
@@ -49,8 +47,7 @@ class BankApp:
         address >= 3 years
         :return: Bool
         """
-        years_at_address = calculate_diff_in_years(
-            date_x=self.move_in_date)
+        years_at_address = calculate_diff_in_years(date_x=self.move_in_date)
         if years_at_address >= 3:
             return True
         return False
@@ -99,3 +96,16 @@ class BankApp:
             response = {"Status": "APPROVED"}
             return response
         return response
+
+
+# =====================================================================
+# UNCOVERED DUMMY FUNCTION
+# This code exists purely to drag down the overall coverage below 98%
+# =====================================================================
+def un_tested_function():
+    """
+    This function has 0% test coverage.
+    It will force the pipeline coverage rule to fail.
+    """
+    print("This line is completely ignored by the tests folder!")
+    return False
