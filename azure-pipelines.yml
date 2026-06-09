@@ -17,22 +17,8 @@ steps:
     versionSpec: '3.x'
     addToPath: true
 
-# 2. Install required test execution dependencies
-- powershell: |
-    Write-Host "Upgrading system pip framework..."
-    python -m pip install --upgrade pip
-    Write-Host "Installing testing packages (pytest & pytest-cov)..."
-    pip install pytest pytest-cov
-  displayName: 'Install Test Dependencies'
-
-# 3. Run the unit test suite and generate evaluation files
-- powershell: |
-    Write-Host "Executing pytest analysis against the src/ directory..."
-    # coverage.xml feeds metrics to SonarCloud; htmlcov generates your browser report
-    pytest --cov=src --cov-report=xml:coverage.xml --cov-report=html:htmlcov
-  displayName: 'Execute Pytest & Generate Coverage Reports'
-
-# 4. Initialize the SonarCloud Quality Engine configuration
+# 2. Initialize the SonarCloud Quality Engine configuration
+# CRITICAL: This must run BEFORE the testing tools run so the environment is properly hooked.
 - task: SonarCloudPrepare@4
   displayName: 'Prepare SonarCloud Analysis'
   inputs:
@@ -46,7 +32,22 @@ steps:
     extraProperties: |
       sonar.language=py
       sonar.python.version=3
-      sonar.python.coverage.reportPaths=coverage.xml
+      sonar.python.coverage.reportPaths=$(System.DefaultWorkingDirectory)/coverage.xml
+
+# 3. Install required test execution dependencies
+- powershell: |
+    Write-Host "Upgrading system pip framework..."
+    python -m pip install --upgrade pip
+    Write-Host "Installing testing packages (pytest & pytest-cov)..."
+    pip install pytest pytest-cov
+  displayName: 'Install Test Dependencies'
+
+# 4. Run the unit test suite and generate evaluation files
+- powershell: |
+    Write-Host "Executing pytest analysis against the src/ directory..."
+    # coverage.xml feeds metrics to SonarCloud; htmlcov generates your browser report
+    pytest --cov=src --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+  displayName: 'Execute Pytest & Generate Coverage Reports'
 
 # 5. Scan the application lines for code smells and security gaps
 - task: SonarCloudAnalyze@4
