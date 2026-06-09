@@ -2,7 +2,7 @@ trigger:
 - main
 - master
 
-# 🔥 BYPASS LOCAL LAPTOP: Tell Azure to use a Microsoft Cloud machine
+# Uses Microsoft's cloud servers to handle execution automatically
 pool:
   vmImage: 'windows-latest'
 
@@ -10,25 +10,29 @@ steps:
 - checkout: self 
   displayName: 'Fetch Application Code & Tests'
 
-# 1. Inject Python into the Microsoft cloud machine
+# 1. Provision a clean Python 3.x runtime environment on the cloud machine
 - task: UsePythonVersion@0
   displayName: 'Set up Python 3.x Environment'
   inputs:
     versionSpec: '3.x'
     addToPath: true
 
-# 2. Install dependencies on the cloud worker
+# 2. Install required test execution dependencies
 - powershell: |
+    Write-Host "Upgrading system pip framework..."
     python -m pip install --upgrade pip
+    Write-Host "Installing testing packages (pytest & pytest-cov)..."
     pip install pytest pytest-cov
   displayName: 'Install Test Dependencies'
 
-# 3. Execute Tests and Generate Reports
+# 3. Run the unit test suite and generate evaluation files
 - powershell: |
+    Write-Host "Executing pytest analysis against the src/ directory..."
+    # coverage.xml feeds metrics to SonarCloud; htmlcov generates your browser report
     pytest --cov=src --cov-report=xml:coverage.xml --cov-report=html:htmlcov
   displayName: 'Execute Pytest & Generate Coverage Reports'
 
-# 4. Initialize SonarCloud Scan
+# 4. Initialize the SonarCloud Quality Engine configuration
 - task: SonarCloudPrepare@4
   displayName: 'Prepare SonarCloud Analysis'
   inputs:
@@ -44,19 +48,20 @@ steps:
       sonar.python.version=3
       sonar.python.coverage.reportPaths=coverage.xml
 
-# 5. Run deep analysis scan
+# 5. Scan the application lines for code smells and security gaps
 - task: SonarCloudAnalyze@4
   displayName: 'Execute SonarCloud Code Scan'
 
-# 6. Sync results to Azure Portal dashboard
+# 6. Publish Quality Gate metrics back to your cloud dashboard
 - task: SonarCloudPublish@4
   displayName: 'Publish Quality Gate Results'
   inputs:
     pollingTimeoutSec: '300'
 
-# 7. Upload the full interactive HTML folder directly to your Pipeline Artifacts
+# 7. Upload the interactive HTML code coverage web report to your Artifacts vault
 - task: PublishPipelineArtifact@1
   displayName: 'Publish Interactive HTML Coverage Dashboard'
+  condition: succeededOrFailed() # Forces this task to run even if a developer's unit test fails
   inputs:
     targetPath: '$(System.DefaultWorkingDirectory)/htmlcov'
     artifactName: 'Python-Unit-Test-Coverage'
