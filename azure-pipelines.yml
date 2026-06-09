@@ -2,29 +2,33 @@ trigger:
 - main
 - master
 
-# Keep running on your active local self-hosted worker pool
+# 🔥 BYPASS LOCAL LAPTOP: Tell Azure to use a Microsoft Cloud machine
 pool:
-  name: 'Default'  
+  vmImage: 'windows-latest'
 
 steps:
 - checkout: self 
   displayName: 'Fetch Application Code & Tests'
 
-# 1. Install Dependencies on your local laptop worker
+# 1. Inject Python into the Microsoft cloud machine
+- task: UsePythonVersion@0
+  displayName: 'Set up Python 3.x Environment'
+  inputs:
+    versionSpec: '3.x'
+    addToPath: true
+
+# 2. Install dependencies on the cloud worker
 - powershell: |
-    Write-Host "Installing application dependencies and pytest packages..."
     python -m pip install --upgrade pip
     pip install pytest pytest-cov
-  displayName: 'Install Frameworks'
+  displayName: 'Install Test Dependencies'
 
-# 2. Execute Tests and Generate BOTH XML and HTML Reports
+# 3. Execute Tests and Generate Reports
 - powershell: |
-    Write-Host "Running test suite with dual coverage tracking..."
-    # xml output is for SonarCloud tracking; html output is for your artifact browser
     pytest --cov=src --cov-report=xml:coverage.xml --cov-report=html:htmlcov
   displayName: 'Execute Pytest & Generate Coverage Reports'
 
-# 3. Initialize SonarCloud Scan (Upgraded to @4)
+# 4. Initialize SonarCloud Scan
 - task: SonarCloudPrepare@4
   displayName: 'Prepare SonarCloud Analysis'
   inputs:
@@ -38,20 +42,19 @@ steps:
     extraProperties: |
       sonar.language=py
       sonar.python.version=3
-      # Feed the generated XML test data directly into the SonarCloud platform
       sonar.python.coverage.reportPaths=coverage.xml
 
-# 4. Run the deep analysis scan
+# 5. Run deep analysis scan
 - task: SonarCloudAnalyze@4
   displayName: 'Execute SonarCloud Code Scan'
 
-# 5. Sync results to Azure Portal dashboard
+# 6. Sync results to Azure Portal dashboard
 - task: SonarCloudPublish@4
   displayName: 'Publish Quality Gate Results'
   inputs:
     pollingTimeoutSec: '300'
 
-# 6. Upload the full interactive HTML folder directly to your Pipeline Artifacts
+# 7. Upload the full interactive HTML folder directly to your Pipeline Artifacts
 - task: PublishPipelineArtifact@1
   displayName: 'Publish Interactive HTML Coverage Dashboard'
   inputs:
