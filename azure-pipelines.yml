@@ -27,7 +27,7 @@ steps:
     configMode: 'manual'
     cliProjectKey: 'sandeepsandiss73_pytest-coverage-example'
     cliProjectName: 'Pytest_Coverage_Example'
-    cliSources: '.' # CHANGED: Tells SonarCloud to scan the root folder
+    cliSources: '.' 
     extraProperties: |
       sonar.language=py
       sonar.python.version=3
@@ -44,12 +44,12 @@ steps:
     pip install pytest pytest-cov
   displayName: 'Install Test Dependencies'
 
-# 4. Run the unit test suite and generate evaluation files
+# 4. Run the unit test suite and break the pipeline if coverage is under 98%
 - powershell: |
     Write-Host "Executing pytest analysis against the root directory..."
-    # CHANGED: Changed --cov=src to --cov=. to track the root directory files
-    pytest --cov=. --cov-report=xml:coverage.xml --cov-report=html:htmlcov
-  displayName: 'Execute Pytest & Generate Coverage Reports'
+    # CRITICAL CHANGE: Added --cov-fail-under=98 to force a local script failure
+    pytest --cov=. --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-fail-under=98
+  displayName: 'Execute Pytest & Enforce 98% Coverage'
 
 # 5. Scan the application lines for code smells and security gaps
 - task: SonarCloudAnalyze@4
