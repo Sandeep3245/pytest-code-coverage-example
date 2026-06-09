@@ -18,7 +18,6 @@ steps:
     addToPath: true
 
 # 2. Initialize the SonarCloud Quality Engine configuration
-# CRITICAL: This must run BEFORE the testing tools run so the environment is properly hooked.
 - task: SonarCloudPrepare@4
   displayName: 'Prepare SonarCloud Analysis'
   inputs:
@@ -28,10 +27,13 @@ steps:
     configMode: 'manual'
     cliProjectKey: 'sandeepsandiss73_pytest-coverage-example'
     cliProjectName: 'Pytest_Coverage_Example'
-    cliSources: 'src'
+    cliSources: '.' # CHANGED: Tells SonarCloud to scan the root folder
     extraProperties: |
       sonar.language=py
       sonar.python.version=3
+      sonar.sources=.
+      sonar.tests=.
+      sonar.test.inclusions=**/*test*.py
       sonar.python.coverage.reportPaths=$(System.DefaultWorkingDirectory)/coverage.xml
 
 # 3. Install required test execution dependencies
@@ -44,9 +46,9 @@ steps:
 
 # 4. Run the unit test suite and generate evaluation files
 - powershell: |
-    Write-Host "Executing pytest analysis against the src/ directory..."
-    # coverage.xml feeds metrics to SonarCloud; htmlcov generates your browser report
-    pytest --cov=src --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+    Write-Host "Executing pytest analysis against the root directory..."
+    # CHANGED: Changed --cov=src to --cov=. to track the root directory files
+    pytest --cov=. --cov-report=xml:coverage.xml --cov-report=html:htmlcov
   displayName: 'Execute Pytest & Generate Coverage Reports'
 
 # 5. Scan the application lines for code smells and security gaps
@@ -62,7 +64,7 @@ steps:
 # 7. Upload the interactive HTML code coverage web report to your Artifacts vault
 - task: PublishPipelineArtifact@1
   displayName: 'Publish Interactive HTML Coverage Dashboard'
-  condition: succeededOrFailed() # Forces this task to run even if a developer's unit test fails
+  condition: succeededOrFailed() 
   inputs:
     targetPath: '$(System.DefaultWorkingDirectory)/htmlcov'
     artifactName: 'Python-Unit-Test-Coverage'
