@@ -47,7 +47,7 @@ steps:
 # 4. Run the unit test suite and break the pipeline if coverage is under 98%
 - powershell: |
     Write-Host "Executing pytest analysis against the root directory..."
-    # CRITICAL CHANGE: Added --cov-fail-under=98 to force a local script failure
+    # ENFORCED: If total coverage is less than 98%, this command exits with an error and stops the pipeline
     pytest --cov=. --cov-report=xml:coverage.xml --cov-report=html:htmlcov --cov-fail-under=98
   displayName: 'Execute Pytest & Enforce 98% Coverage'
 
